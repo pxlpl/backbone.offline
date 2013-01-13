@@ -68,6 +68,7 @@ spec_files:
   - test/fixtures.js
   - test/models.js
   - test/*test*.js
+
 # src_dir
 #
 # Source directory path. Your src_files must be returned relative to this path. Will use root if left blank.
@@ -88,5 +89,5 @@ src_dir:
 #
 # spec_dir: spec/javascripts
 #
-spec_dir:
+spec_dir: .
 

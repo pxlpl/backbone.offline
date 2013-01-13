@@ -24,7 +24,7 @@ GEM
       diff-lcs (~> 1.1.2)
     rspec-mocks (2.8.0)
     rubyzip (0.9.5)
-    selenium-webdriver
+    selenium-webdriver (2.27.2)
       childprocess (>= 0.2.5)
       ffi (~> 1.0.9)
       multi_json (~> 1.0.4)
@@ -32,6 +32,7 @@ GEM
 
 PLATFORMS
   ruby
+  x86-mingw32
 
 DEPENDENCIES
   jasmine
