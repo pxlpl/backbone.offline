@@ -1,0 +1,23 @@
+{
+    "framework": "jasmine",
+    "src_files":[
+        "vendor/jasmine*/jasmine.async.js",
+        "vendor/underscore.js",
+        "vendor/jquery-1.8.3.js",
+        "vendor/backbone.js",
+        "vendor/rosie.js",
+        "src/util.js",
+        "src/offline.js",
+        "src/query.js",
+        "src/memory.store.js",
+        "src/indexeddb.store.js",
+        "src/store.js",
+        "src/manager.js",
+        "src/synchronizer.js",
+        "src/status.js",
+        "src/strategy.js",
+        "test/fixtures.js",
+        "test/models.js",
+        "test/*test*"
+    ]
+}
