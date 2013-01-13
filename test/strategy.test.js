@@ -1,110 +1,7 @@
-FakeModelSync = function(method, model, options){
-    var modelName = _lookup(model);
-    var dfd = $.Deferred();
-    var rv;
-    switch (method){
-            case "read":
-                rv = FakeRest[modelName][model.id];
-                break;
-            case "create":
-                var record = _.clone(model.attributes);
-                record.id = parseInt(_.uniqueId());
-                record._updated = new Date();
-                FakeRest[modelName][model.id] = record;
-                rv = record;
-                break;
-            case "update":
-                var record = _.clone(model.attributes);
-
-                if (options.headers['If-Unmodified-Since']){
-                    var ifUnmodifiedSince = new Date(options.headers['If-Unmodified-Since']);    
-                    var oldUpdated = new Date(FakeRest[modelName][model.id]._updated);
-                    if (oldUpdated > ifUnmodifiedSince){
-                        options.error(FakeRest[modelName][model.id]);
-                        _.defer(function(){dfd.reject({status: 412})});
-                        return dfd.promise();
-                    }
-                }
-                
-                record._updated = new Date();
-                FakeRest[modelName][model.id] = record;
-                rv = record;
-                break;
-
-            case "delete":
-                delete FakeRest[modelName][model.id];
-                break
-    }
-    options.success(rv);
-    dfd.resolve(rv);
-    return dfd.promise();
-};
-
-FakeCollectionSync = function(method, collection, options){
-    var modelName = _lookup(collection);
-    var dfd = $.Deferred();
-    var rv;
-
-    switch (method){
-        case "read":
-
-            rv = _.values(FakeRest[modelName]);
-            if (options['data']['updated__gte']){
-                rv = _.reject(rv, function(record){
-                    return new Date(record._updated) < new Date(options['data']['updated__gte']);
-                });
-            }
-            break;
-    }
-    options.success(rv);
-    dfd.resolve(rv);
-    return dfd.promise(rv);
-};
-
-FakeSync = function(method, model, options){
-    if (model instanceof Backbone.Model){    
-        return FakeModelSync(method, model, options)
-    } else {
-        return FakeCollectionSync(method, model, options);
-    }
-};
-
-FakeRest = {
-    "PizzaModel": {},
-    "ToppingModel": {}
-};
-
-lookupMap = {
-    "PizzaModel": [PizzaModel, PizzaCollection],
-    "ToppingModel": [ToppingModel, ToppingCollection]
-};
-
-_lookup = function(modelOrCollection){
-    var rv;
-    _.each(lookupMap, function(candidates, name){
-        if (_.any(candidates, function(candidate){
-            return modelOrCollection instanceof candidate;
-        })){
-            rv = name;
-        }
-    });
-    return rv;
-};
-
 describe("strategy testing suite", function(){
     var async = new AsyncSpec(this);
-    beforeEach(function(){
-        FakeRest = {
-            "PizzaModel": {},
-            "ToppingModel": {}
-        };
-
-        spyOn(Offline, "remote").andCallFake(FakeSync);
-    });
-
     async.beforeEach(connectTestDB);
     async.afterEach(clearTestDB);
-
 
     async.it("can create a model in an empty database, should receive new ID", function(done){
         var pizzaRecord = {id:Offline.uuid(),_dirty:true,'t':true};
@@ -114,6 +11,17 @@ describe("strategy testing suite", function(){
             _.defer(dfd.resolve);
             return dfd.promise();
         });
+        spyOn(Offline,'remote').andCallFake(function(method,model,options){
+            var success = _.clone(model.attributes);
+            if(model instanceof Backbone.Collection){
+                success = [];
+            }
+            options.success(success);
+            return $.Deferred().resolve()
+        });
+
+
+
         spyOn(PizzaSynchronizer,'createRecord').andCallThrough();
         PizzaStore.save(pizzaRecord).done(function(){
             var global = synchronize([PizzaSynchronizer]);
@@ -128,11 +36,26 @@ describe("strategy testing suite", function(){
         });
     });
 
-    async.it("can preserve relations to local models",function(done){
-        var pizza = new PizzaModel({name:"pizzaA"});
-        var topping = new ToppingModel({name:"toppingA"});
-        $.when(pizza.save(), topping.save()).done(function(){
 
+    async.it("can update local relations to remote relations",function(done){
+        spyOn(Offline,'remote').andCallFake(function(method,model,options){
+           if(model instanceof Backbone.Collection){
+               // always read
+               options.success([],{});
+           }else{
+               var record = _.clone(model.attributes);
+               if(method=='create'){
+                   record.id = 1;
+               }
+               options.success(record);
+           }
+           return $.Deferred().resolve();
+        });
+
+        var pizza = new PizzaModel();
+        var topping = new ToppingModel();
+
+        $.when(pizza.save(), topping.save()).done(function(){
             pizza.set('toppings', [topping.id]);
             pizza.save().done(function(){
                synchronize([PizzaSynchronizer, ToppingSynchronizer]).all.done(function(){
@@ -140,9 +63,9 @@ describe("strategy testing suite", function(){
                         function(pizzas,toppings){
                             expect(pizzas.length).toEqual(1);
                             expect(toppings.length).toEqual(1);
-                                expect(pizzas[0].toppings).toEqual([toppings[0].id]);
-                                expect(toppings[0].pizzas).toEqual([pizzas[0].id]);
-                                done();
+                            expect(pizzas[0].toppings).toEqual([toppings[0].id]);
+                            expect(toppings[0].pizzas).toEqual([pizzas[0].id]);
+                            done();
                         })
 
                 });
@@ -151,63 +74,81 @@ describe("strategy testing suite", function(){
     });
 
 
-    async.it("can fetch and create models using synchronization", function(done){
+    async.it("can fetch models using synchronization", function(done){
+        var pizzas = [
+            {id:1},
+            {id:2},
+            {id:3}
+        ];
 
-         var pizza1 = {id: parseInt(_.uniqueId()), name: "pizza 1"};
-         var pizza2 = {id: parseInt(_.uniqueId()), name: "pizza 2"};
-         FakeRest["PizzaModel"][pizza1.id] = pizza1;
-         FakeRest["PizzaModel"][pizza2.id] = pizza2;
+         spyOn(Offline,'remote').andCallFake(function(method,model,options){
+             var success = _.clone(model.attributes);
+             if(model instanceof PizzaCollection){
+                 success = pizzas;
+             }
 
-         var pizza = new PizzaModel({name: "nowa pizza"});
-         pizza.save();
+             options.success(success);
+             return $.Deferred().resolve();
+         });
 
          synchronize([PizzaSynchronizer]).all.done(function(){
              PizzaStore.find({})
-             .done(function(pizzas){
-                 expect(pizzas.length).toEqual(3);
-                 var pizzasIds = _.unique(_.pluck(pizzas, 'id'));
-                 expect(pizzasIds).toContain(pizza1.id);
-                 expect(pizzasIds).toContain(pizza2.id);
-                 var onlyNewIDs = _.without(pizzasIds, pizza1.id, pizza2.id);
-                 expect(onlyNewIDs.length).toEqual(1);
-                 done();
-             });
+                 .done(function(pizzas){
+                     expect(pizzas.length).toEqual(pizzas.length);
+                     done();
+                 });
              done();
          });
 
-        
+
     });
 
 
     async.it("will update local state with the one received from the server", function(done){
-         FakeRest["PizzaModel"][1] = {id: 1, pizza: "server pizza"};
-         $.when(
-             PizzaStore.save({id: 1, pizza: "client pizza"})
-             ).done(function(){
-                 synchronize([PizzaSynchronizer]).all.done(function(){
+         spyOn(Offline,'remote').andCallFake(function(method,model,options){
+            if(method=='read'&&model instanceof PizzaCollection){
+                options.success([{id:1,name:"server pizza"}]);
+            }
+            return $.Deferred().resolve();
+         });
+         PizzaStore.save({id: 1, pizza: "client pizza"})
+            .done(function(){
+                 synchronize([PizzaSynchronizer]).all
+                     .done(function(){
                          PizzaStore.get(1).done(function(record){
-                         expect(record.pizza).toEqual("server pizza");
+                            expect(record.name).toEqual("server pizza");
                          done();
                      });
                  });
-             });
-    });
-
-    async.it("won't update server database when the data was modified since the last sync", function(done){
-         FakeRest["PizzaModel"][1] = {id: 1, _updated: new Date("2038-10-10"), pizza: "server pizza"};
-         $.when(
-             PizzaStore.save({_dirty: true, id: 1, pizza: "older client pizza"})
-             ).done(function(){
-                 synchronize([PizzaSynchronizer]).all.done(function(){
-                         PizzaStore.get(1).done(function(record){
-                             expect(record.pizza).toEqual("server pizza");
-                             done();
-                         });
-                 });
-             });
+            });
     });
 
 
+    async.it("sends headers so the server won't modify newer record with older record", function(done){
 
-    
+        spyOn(Offline,'remote').andCallFake(function(method,model,options){
+            if(method=='update'){
+                expect(options.headers['If-Unmodified-Since']).toBeDefined();
+                var response = {id:model.id,name:"new pizza"};
+                options.error(model,response);
+                return $.Deferred().reject({status:412,response:response});
+            }else{
+                options.success([]);
+            }
+            return $.Deferred().resolve();
+        });
+        PizzaStore.save({_dirty: true, id: 1, name: "old pizza"})
+            .done(function(){
+                synchronize([PizzaSynchronizer]).all.done(function(){
+                     PizzaStore.get(1).done(function(record){
+                         expect(record.name).toEqual("new pizza");
+                         done();
+                     });
+             });
+        });
+    });
+//
+
+
+
 });

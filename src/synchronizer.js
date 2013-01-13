@@ -406,13 +406,12 @@ Synchronizer = Offline.Singleton.extend({
             if (xhr.status == 406){
                 reason = "invalid";
             }
-            _.defer(
-                function(){
-                    dfd.resolve({
+            _.defer(function(){
+                dfd.resolve({
                     message: "error",
                     record: valid,
                     reason: reason
-                })
+                });
             });
 
         };

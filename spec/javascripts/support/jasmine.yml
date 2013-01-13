@@ -53,6 +53,8 @@ stylesheets:
 #   - helpers/**/*.js
 #
 helpers:
+  - fixtures.js
+  - models.js
 
 # spec_files
 #
@@ -65,10 +67,13 @@ helpers:
 #   - **/*[sS]pec.js
 #
 spec_files:
-  - test/fixtures.js
-  - test/models.js
-  - test/*test*.js
-
+  - store.test.js
+  - manager.test.js
+  - synchronizer.test.js
+  - strategy.test.js
+  - storyline.test.js
+  - offline.test.js
+  - integration.test.js
 # src_dir
 #
 # Source directory path. Your src_files must be returned relative to this path. Will use root if left blank.
@@ -89,5 +94,5 @@ src_dir:
 #
 # spec_dir: spec/javascripts
 #
-spec_dir: .
+spec_dir: test
 

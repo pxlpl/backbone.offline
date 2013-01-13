@@ -18,6 +18,12 @@
         "src/strategy.js",
         "test/fixtures.js",
         "test/models.js",
-        "test/*test*"
+        "test/store.test.js",
+        "test/manager.test.js",
+        "test/synchronizer.test.js",
+        "test/strategy.test.js",
+        "test/storyline.test.js",
+        "test/offline.test.js",
+        "test/integration.test.js"
     ]
 }

@@ -18,7 +18,7 @@ this.AsyncSpec = (function(global){
 
       waitsFor(function(){
         return done;
-      }, "", JASMINE_TIMEOUT_INTERVAL || 5000);
+      }, "", 1000);
     };
   }
 
