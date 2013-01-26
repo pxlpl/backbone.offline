@@ -1,1 +1,4 @@
 .idea
+.pyc
+examples/*/src
+*sqlite3*
