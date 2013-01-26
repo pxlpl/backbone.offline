@@ -46,7 +46,7 @@ _.extend(Offline, Backbone.Events,{
     register: function(config){
         var defaults = {
             store : MemoryStore.extend({name:_.uniqueId('store')}),
-            synchronizer : Synchronizer.extend(),
+            synchronizer : Synchronizer.extend({relations: []}),
             manager : Manager.extend(),
             strategy : Strategy.extend()
         } ;

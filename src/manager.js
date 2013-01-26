@@ -42,9 +42,12 @@ Manager = Offline.Singleton.extend({
             model.set('_dirty',true);
             model.set('id',uuid());
         }
+        
         var record = this.toRecord(model);
+
         return this.store.save(record)
             .pipe(this.updateRelated.bind(this,record,{}))
+            .pipe(function(){ var dfd = $.Deferred(); dfd.resolve(model, {}, options); return dfd;}) // !!
             .then(options.success, options.error);
 
     },
