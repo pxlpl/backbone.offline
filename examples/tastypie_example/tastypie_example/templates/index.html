@@ -1,0 +1,42 @@
+<!doctype html>
+<head>
+    <title>Backbone.Offline Tastypie Example</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.3/underscore-min.js"></script>
+    <script src="http://backbonejs.org/backbone.js"></script>
+    <!-- // <script type="text/javascript" src="{{ STATIC_URL }}js/backbone-tastypie.js"></script> -->
+    <script src="{{ STATIC_URL }}util.js"></script>
+    <script src="{{ STATIC_URL }}offline.js"></script>
+    <script src="{{ STATIC_URL }}query.js"></script>
+    <script src="{{ STATIC_URL }}memory.store.js"></script>
+    <script src="{{ STATIC_URL }}indexeddb.store.js"></script>
+    <script src="{{ STATIC_URL }}store.js"></script>
+    <script src="{{ STATIC_URL }}manager.js"></script>
+    <script src="{{ STATIC_URL }}synchronizer.js"></script>
+    <script src="{{ STATIC_URL }}status.js"></script>
+    <script src="{{ STATIC_URL }}strategy.js"></script>
+    
+    <script>
+        Store = MemoryStore;
+        Backbone.Store = Store;
+
+        PizzaModel = Backbone.Model.extend();
+        ToppingModel = Backbone.Model.extend();
+        
+        PizzaCollection = Backbone.Collection.extend({model: PizzaModel, url: "api/v1/pizza/"});
+        ToppingCollection = Backbone.Collection.extend({model: ToppingModel, url: "api/v1/topping/"});
+
+        PizzaStore = Store.extend();
+        ToppingStore = Store.extend();
+
+        PizzaManager = Manager.extend();
+        ToppingManager = Manager.extend();
+
+        Offline.register({collection: PizzaCollection, model: PizzaModel});
+        Offline.register({collection: ToppingCollection, model: ToppingModel});
+        a = new ToppingCollection();
+        a.fetch({remote: true}).done(function(){
+            console.log(a);
+        });
+    </script>
+</head>

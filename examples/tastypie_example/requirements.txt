@@ -1,0 +1,2 @@
+-e git://github.com/PaulUithol/backbone-tastypie.git@75fe812663acdf5ef1b2a59969fcc1e69752d967#egg=Backbone_tastypie-dev
+Django==1.4
